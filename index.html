@@ -1,116 +1,117 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>US Map (D3)</title>
-  <style>
-    :root {
-      --bg: #f7f3ea;
-      --ink: #1f1f1f;
-      --land: #2b2d42;
-      --stroke: #f7f3ea;
-      --hover: #ef8354;
-    }
-    body {
-      margin: 0;
-      font-family: "Georgia", "Times New Roman", serif;
-      background: radial-gradient(circle at 20% 20%, #fff6e0, var(--bg));
-      color: var(--ink);
-    }
-    header {
-      padding: 24px 24px 8px 24px;
-    }
-    h1 {
-      margin: 0 0 6px 0;
-      font-size: 26px;
-      letter-spacing: 0.2px;
-    }
-    p {
-      margin: 0;
-      opacity: 0.75;
-    }
-    #map {
-      display: block;
-      width: 100vw;
-      height: 70vh;
-    }
-    .state {
-      fill: var(--land);
-      stroke: var(--stroke);
-      stroke-width: 0.8;
-      vector-effect: non-scaling-stroke;
-      transition: fill 120ms ease;
-    }
-    .state:hover {
-      fill: var(--hover);
-      cursor: pointer;
-    }
-    .tooltip {
-      position: absolute;
-      pointer-events: none;
-      background: rgba(255, 255, 255, 0.92);
-      border: 1px solid #ddd;
-      padding: 6px 8px;
-      border-radius: 6px;
-      font-size: 12px;
-      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
-    }
-  </style>
+  <title>Find Your State — U.S. Data Explorer</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
 </head>
+
 <body>
-  <header>
-    <h1>US States</h1>
-    <p>D3 + GeoJSON rendering (run from a local server).</p>
-  </header>
+  <!-- ═══════════════════════════════════════
+       LEFT PANEL — Study Quiz + Match Quiz
+  ═══════════════════════════════════════ -->
+  <aside id="left-panel" class="quiz-panel" aria-label="Left panel">
+    <div class="quiz-panel-inner">
 
-  <svg id="map" role="img" aria-label="Map of the United States"></svg>
-  <div id="tooltip" class="tooltip" style="opacity: 0"></div>
+      <div class="quiz-panel-header">
+        <div class="panel-mode-tabs">
+          <button type="button" class="panel-tab active" id="tab-study" title="Explore map datasets and interact with the map">Map Study</button>
+          <button type="button" class="panel-tab" id="tab-match" title="Play the state-matching mini quiz">Find Your State</button>
+        </div>
+      </div>
 
-  <script src="https://d3js.org/d3.v7.min.js"></script>
-  <script>
-    const svg = d3.select("#map");
-    const tooltip = d3.select("#tooltip");
+      <!-- STUDY MODE -->
+      <div id="panel-study" class="panel-view">
+        <div class="panel-view-body" id="study-body"></div>
+        <div class="panel-view-footer" id="study-footer"></div>
+      </div>
 
-    const width = svg.node().clientWidth;
-    const height = svg.node().clientHeight;
+      <!-- MATCH MODE -->
+      <div id="panel-match" class="panel-view" style="display:none">
+        <div class="panel-view-body" id="match-body">
+          <div id="quiz-body"></div>
+        </div>
+        <div class="panel-view-footer">
+          <button id="quiz-back-btn" type="button" class="quiz-btn quiz-btn-ghost">Back</button>
+          <button id="quiz-next-btn" type="button" class="quiz-btn quiz-btn-primary">Start</button>
+        </div>
+      </div>
 
-    const projection = d3.geoAlbersUsa()
-      .translate([width / 2, height / 2])
-      .scale(Math.min(width, height) * 1.2);
+    </div>
+  </aside>
 
-    const path = d3.geoPath(projection);
+  <!-- LEFT PANEL TOGGLE -->
+  <button id="panel-toggle" class="panel-toggle" type="button" aria-expanded="true" aria-controls="left-panel" title="Collapse left panel">◀</button>
 
-    fetch("us-states.geojson")
-      .then(response => {
-        if (!response.ok) throw new Error("Failed to load GeoJSON");
-        return response.json();
-      })
-      .then(data => {
-        svg
-          .append("g")
-          .selectAll("path")
-          .data(data.features)
-          .join("path")
-          .attr("class", "state")
-          .attr("d", path)
-          .on("mousemove", (event, d) => {
-            tooltip
-              .style("opacity", 1)
-              .style("left", `${event.pageX + 12}px`)
-              .style("top", `${event.pageY - 12}px`)
-              .text(d.properties.name);
-          })
-          .on("mouseleave", () => {
-            tooltip.style("opacity", 0);
-          });
-      })
-      .catch(err => {
-        console.error(err);
-        alert("Could not load the GeoJSON. Make sure you are using a local server.");
-      });
+  <!-- ═══════════════════════════════════════
+       MAIN — Map + Dataset Tabs
+  ═══════════════════════════════════════ -->
+  <main class="main-area">
+    <div class="map-header">
+      <h1 class="map-title">U.S. State Data Explorer</h1>
+      <div class="dataset-tabs" id="dataset-tabs"></div>
+      <button type="button" class="view-tab-btn" id="btn-charts-view" title="Open dedicated charts pages">Charts View</button>
+    </div>
 
-    window.addEventListener("resize", () => location.reload());
-  </script>
+    <div class="map-container">
+      <div id="map"></div>
+      <div class="inset">
+        <div id="map-ak" class="inset-map" title="Alaska"></div>
+        <div id="map-hi" class="inset-map" title="Hawaii"></div>
+      </div>
+    </div>
+
+      <div class="avatar-controls" aria-label="Avatar controls">
+        <button id="avatar-toggle-btn" class="avatar-btn" type="button">Hide Avatars</button>
+      </div>
+
+      <div class="map-footer" id="map-footer">
+        <!-- desc text rendered by JS -->
+      </div>
+    </main>
+
+
+  <!-- ═══════════════════════════════════════
+       CHARTS VIEW (from partner code)
+  ═══════════════════════════════════════ -->
+  <div id="charts-view" class="charts-view" style="display:none">
+    <div class="charts-view-header">
+      <button type="button" class="view-tab-btn is-active" id="btn-map-tab">U.S. State Data Explorer</button>
+    </div>
+    <div class="charts-wrap">
+      <div class="chart-card chart-wide">
+        <h3>Top States by 2024 Visitation</h3>
+        <canvas id="bar-chart"></canvas>
+      </div>
+      <div class="chart-card">
+        <h3>2024 Market Share (Top States + Other)</h3>
+        <canvas id="pie-chart"></canvas>
+      </div>
+      <div class="chart-card chart-wide">
+        <h3>2023 vs 2024 Visitation by State</h3>
+        <canvas id="line-chart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+  <script src="state-visit-data.js"></script>
+  <script src="states-demographic-data.js"></script>
+  <script src="states-economic-data.js"></script>
+
+  <script src="js/app-utils.js"></script>
+  <script src="js/data-layer.js"></script>
+  <script src="js/map-view.js"></script>
+  <script src="js/study-quiz.js"></script>
+  <script src="js/state-match.js"></script>
+  <script src="js/charts-view.js"></script>
 </body>
 </html>
