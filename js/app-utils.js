@@ -179,4 +179,39 @@
     return { ok: true, skipped: false, data: data };
   };
 
+  window.loadAvatarMatches = async function loadAvatarMatches(limit) {
+    const cfg = window.getAppConfig();
+    if (!cfg.supabaseUrl || !cfg.supabaseAnonKey) return [];
+
+    const count = Math.max(1, Math.min(500, Number(limit) || 200));
+    const response = await fetch(
+      cfg.supabaseUrl + "/rest/v1/avatar_matches"
+      + "?select=match_id,match_at,person_name,state_name,avatar_key,source,map_key"
+      + "&order=created_at.asc"
+      + "&limit=" + count,
+      {
+        method: "GET",
+        mode: "cors",
+        headers: {
+          "Accept": "application/json",
+          "apikey": cfg.supabaseAnonKey,
+          "Authorization": "Bearer " + cfg.supabaseAnonKey
+        }
+      }
+    );
+
+    if (!response.ok) {
+      let message = "Supabase read failed with status " + response.status;
+      try {
+        const data = await response.json();
+        if (data && typeof data.message === "string") message = data.message;
+        else if (data && typeof data.error === "string") message = data.error;
+      } catch (_) {}
+      throw new Error(message);
+    }
+
+    const rows = await response.json();
+    return Array.isArray(rows) ? rows : [];
+  };
+
 })();

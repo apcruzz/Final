@@ -333,6 +333,7 @@
       document.getElementById("map-footer").textContent = ds().desc();
       setupAvatarControls();
       restoreAvatarsFromStorage();
+      startRemoteAvatarSync();
     })
     .catch(err => console.error("GeoJSON load error:", err));
 
@@ -345,9 +346,12 @@
     wahine:  "images/Wahine.png"
   };
   const AVATAR_STORAGE_KEY = "state-avatar-history-v1";
+  const REMOTE_AVATAR_REFRESH_MS = 30000;
   const AVATAR_SLOT_SPACING = 18;
   const avatarMarkers = [];
+  const knownAvatarIds = new Set();
   let avatarsVisible = true;
+  let remoteAvatarPollTimer = null;
 
   function getInitials(name) {
     return String(name || "Traveler").trim().split(/\s+/).filter(Boolean)
@@ -366,8 +370,14 @@
     try {
       localStorage.setItem(AVATAR_STORAGE_KEY, JSON.stringify(
         avatarMarkers.map(function(i) {
-          return { personName: i.personName, stateName: i.stateName, avatarKey: i.avatarKey || "default" };
-        })
+          if (i.origin === "remote") return null;
+          return {
+            avatarId: i.avatarId || "",
+            personName: i.personName,
+            stateName: i.stateName,
+            avatarKey: i.avatarKey || "default"
+          };
+        }).filter(Boolean)
       ));
     } catch(_) {}
   }
@@ -379,7 +389,7 @@
       const parsed = JSON.parse(raw);
       if (!Array.isArray(parsed)) return [];
       return parsed.filter(function(i) { return i && i.personName && i.stateName; })
-        .map(function(i) { return Object.assign({ avatarKey: "default" }, i); });
+        .map(function(i) { return Object.assign({ avatarId: "", avatarKey: "default" }, i); });
     } catch(_) { return []; }
   }
 
@@ -400,7 +410,9 @@
       if (m.hasLayer(item.marker)) m.removeLayer(item.marker);
     });
     avatarMarkers.length = 0;
+    knownAvatarIds.clear();
     try { localStorage.removeItem(AVATAR_STORAGE_KEY); } catch(_) {}
+    syncRemoteAvatars();
   }
 
   function setupAvatarControls() {
@@ -415,12 +427,53 @@
     });
   }
 
+  function fetchRemoteAvatars() {
+    return loadAvatarMatches(250).then(function(rows) {
+      return rows.map(function(row) {
+        return {
+          avatarId: String(row.match_id || ""),
+          personName: row.person_name || "",
+          stateName: row.state_name || "",
+          avatarKey: row.avatar_key || "default",
+          source: row.source || "supabase"
+        };
+      });
+    });
+  }
+
+  function syncRemoteAvatars() {
+    fetchRemoteAvatars()
+      .then(function(rows) {
+        rows.forEach(function(row) {
+          if (!row.avatarId || knownAvatarIds.has(row.avatarId)) return;
+          renderStateAvatar(row.personName, row.stateName, {
+            persist: false,
+            avatarKey: row.avatarKey,
+            recordId: row.avatarId,
+            source: row.source,
+            origin: "remote"
+          });
+        });
+      })
+      .catch(function(err) {
+        console.error("Avatar sync failed:", err);
+      });
+  }
+
+  function startRemoteAvatarSync() {
+    syncRemoteAvatars();
+    if (remoteAvatarPollTimer) window.clearInterval(remoteAvatarPollTimer);
+    remoteAvatarPollTimer = window.setInterval(syncRemoteAvatars, REMOTE_AVATAR_REFRESH_MS);
+  }
+
   function renderStateAvatar(personName, stateName, options) {
     options = options || {};
     const target = stateCenters[stateName];
     if (!target) return false;
+    const avatarId = String(options.recordId || Date.now());
+    if (avatarId && knownAvatarIds.has(avatarId)) return false;
     const record = {
-      id: Date.now(),
+      id: avatarId,
       at: new Date().toISOString(),
       personName: String(personName || "Traveler"),
       stateName: stateName,
@@ -451,12 +504,15 @@
     marker.bindTooltip(escHtml(rawName) + " matched with " + escHtml(stateName), {
       direction: "top", offset: [0, -14], className: "state-tooltip"
     });
+    knownAvatarIds.add(avatarId);
     avatarMarkers.push({
       marker: marker,
+      avatarId: avatarId,
       mapKey: target.mapKey,
       personName: rawName,
       stateName: stateName,
-      avatarKey: avatarKey
+      avatarKey: avatarKey,
+      origin: options.origin === "remote" ? "remote" : "local"
     });
     if (options.persist !== false) {
       saveAvatarsToStorage();
@@ -467,7 +523,12 @@
 
   function restoreAvatarsFromStorage() {
     readAvatarsFromStorage().forEach(function(entry) {
-      renderStateAvatar(entry.personName, entry.stateName, { persist: false, avatarKey: entry.avatarKey });
+      renderStateAvatar(entry.personName, entry.stateName, {
+        persist: false,
+        avatarKey: entry.avatarKey,
+        recordId: entry.avatarId || "",
+        source: "local_storage"
+      });
     });
   }
 

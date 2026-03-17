@@ -53,3 +53,10 @@ create policy "allow anon inserts to avatar_matches"
   for insert
   to anon
   with check (true);
+
+drop policy if exists "allow anon selects from avatar_matches" on public.avatar_matches;
+create policy "allow anon selects from avatar_matches"
+  on public.avatar_matches
+  for select
+  to anon
+  using (true);
