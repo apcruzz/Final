@@ -43,6 +43,27 @@
       return { ok: false, skipped: true, reason: "missing-endpoint" };
     }
 
+    const requestBody = JSON.stringify({
+      app: "state-data-explorer",
+      type: type,
+      submittedAt: new Date().toISOString(),
+      page: window.location.href,
+      payload: payload
+    });
+    const isGoogleAppsScript = /script\.google\.com\/macros\/s\//.test(cfg.responseWebhookUrl);
+
+    if (isGoogleAppsScript) {
+      await fetch(cfg.responseWebhookUrl, {
+        method: "POST",
+        mode: "no-cors",
+        headers: {
+          "Content-Type": "text/plain;charset=utf-8"
+        },
+        body: requestBody
+      });
+      return { ok: true, skipped: false, opaque: true };
+    }
+
     const headers = {
       "Content-Type": "application/json",
       "Accept": "application/json"
@@ -53,13 +74,7 @@
       method: "POST",
       mode: "cors",
       headers: headers,
-      body: JSON.stringify({
-        app: "state-data-explorer",
-        type: type,
-        submittedAt: new Date().toISOString(),
-        page: window.location.href,
-        payload: payload
-      })
+      body: requestBody
     });
 
     let data = null;
