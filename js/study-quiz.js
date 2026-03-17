@@ -155,15 +155,15 @@
     }
 
     const cfg = getAppConfig();
-    if (!cfg.responseWebhookUrl) {
+    if (!cfg.supabaseUrl || !cfg.supabaseAnonKey) {
       return {
         cls: "is-muted",
-        text: "Remote response collection is off. Responses are only saved in this browser until you set APP_CONFIG.responseWebhookUrl in index.html."
+        text: "Remote response collection is off. Responses are only saved in this browser until you set APP_CONFIG.supabaseUrl and APP_CONFIG.supabaseAnonKey in index.html."
       };
     }
     return {
       cls: "is-muted",
-      text: remoteSubmitMessage || "Remote response collection is ready."
+      text: remoteSubmitMessage || "Supabase response collection is ready."
     };
   }
 
@@ -178,7 +178,7 @@
     try {
       await submitAppResponse("study_attempt", row);
       remoteSubmitState = "success";
-      remoteSubmitMessage = "Response submitted to your remote collector.";
+      remoteSubmitMessage = "Response saved to Supabase.";
     } catch (err) {
       remoteSubmitState = "error";
       remoteSubmitMessage = err && err.message

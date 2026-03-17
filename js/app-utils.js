@@ -32,6 +32,8 @@
   window.getAppConfig = function getAppConfig() {
     const cfg = window.APP_CONFIG || {};
     return {
+      supabaseUrl: typeof cfg.supabaseUrl === "string" ? cfg.supabaseUrl.trim().replace(/\/+$/, "") : "",
+      supabaseAnonKey: typeof cfg.supabaseAnonKey === "string" ? cfg.supabaseAnonKey.trim() : "",
       responseWebhookUrl: typeof cfg.responseWebhookUrl === "string" ? cfg.responseWebhookUrl.trim() : "",
       responseWebhookAuth: typeof cfg.responseWebhookAuth === "string" ? cfg.responseWebhookAuth.trim() : ""
     };
@@ -75,8 +77,65 @@
 
   window.submitAppResponse = async function submitAppResponse(type, payload) {
     const cfg = window.getAppConfig();
+    if (cfg.supabaseUrl && cfg.supabaseAnonKey) {
+      const table = type === "avatar_match" ? "avatar_matches" : "study_responses";
+      const row = type === "avatar_match"
+        ? {
+            match_id: String(payload.id || ""),
+            match_at: payload.at || new Date().toISOString(),
+            person_name: payload.personName || "",
+            state_name: payload.stateName || "",
+            avatar_key: payload.avatarKey || "default",
+            source: payload.source || "",
+            map_key: payload.mapKey || "",
+            app: "state-data-explorer",
+            page: window.location.href
+          }
+        : {
+            response_id: String(payload.id || ""),
+            response_at: payload.at || new Date().toISOString(),
+            name: payload.name || "",
+            gender: payload.gender || "",
+            correct: Number(payload.correct || 0),
+            total: Number(payload.total || 0),
+            avg_conf: Number(payload.avgConf || 0),
+            avg_time: Number(payload.avgTime || 0),
+            total_time_ms: Number(payload.totalTimeMs || 0),
+            fastest_map: payload.fastestMap || "",
+            hardest_reasons: Array.isArray(payload.hardestReasons) ? payload.hardestReasons : [],
+            entries_json: Array.isArray(payload.entries) ? payload.entries : [],
+            app: "state-data-explorer",
+            page: window.location.href
+          };
+
+      const response = await fetch(cfg.supabaseUrl + "/rest/v1/" + table, {
+        method: "POST",
+        mode: "cors",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+          "apikey": cfg.supabaseAnonKey,
+          "Authorization": "Bearer " + cfg.supabaseAnonKey,
+          "Prefer": "return=minimal"
+        },
+        body: JSON.stringify(row)
+      });
+
+      if (!response.ok) {
+        let message = "Supabase request failed with status " + response.status;
+        try {
+          const data = await response.json();
+          if (data && typeof data.message === "string") message = data.message;
+          else if (data && typeof data.error === "string") message = data.error;
+        } catch (_) {}
+        throw new Error(message);
+      }
+
+      return { ok: true, skipped: false, backend: "supabase" };
+    }
+
     if (!cfg.responseWebhookUrl) {
-      return { ok: false, skipped: true, reason: "missing-endpoint" };
+      return { ok: false, skipped: true, reason: "missing-backend" };
     }
 
     const requestBody = JSON.stringify({
