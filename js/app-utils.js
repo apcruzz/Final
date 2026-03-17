@@ -53,6 +53,16 @@
     const isGoogleAppsScript = /script\.google\.com\/macros\/s\//.test(cfg.responseWebhookUrl);
 
     if (isGoogleAppsScript) {
+      if (typeof navigator !== "undefined" && typeof navigator.sendBeacon === "function") {
+        const queued = navigator.sendBeacon(
+          cfg.responseWebhookUrl,
+          new Blob([requestBody], { type: "text/plain;charset=utf-8" })
+        );
+        if (queued) {
+          return { ok: true, skipped: false, queued: true };
+        }
+      }
+
       await fetch(cfg.responseWebhookUrl, {
         method: "POST",
         mode: "no-cors",
