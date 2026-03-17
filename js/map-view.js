@@ -419,6 +419,15 @@
     options = options || {};
     const target = stateCenters[stateName];
     if (!target) return false;
+    const record = {
+      id: Date.now(),
+      at: new Date().toISOString(),
+      personName: String(personName || "Traveler"),
+      stateName: stateName,
+      avatarKey: options.avatarKey === "wahine" ? "wahine" : "default",
+      source: options.source || "manual",
+      mapKey: target.mapKey
+    };
     const map = getMapByKey(target.mapKey);
     const rawName = String(personName || "Traveler");
     const initials = getInitials(personName);
@@ -442,15 +451,6 @@
     marker.bindTooltip(escHtml(rawName) + " matched with " + escHtml(stateName), {
       direction: "top", offset: [0, -14], className: "state-tooltip"
     });
-    const record = {
-      id: Date.now(),
-      at: new Date().toISOString(),
-      personName: rawName,
-      stateName: stateName,
-      avatarKey: avatarKey,
-      source: options.source || "manual",
-      mapKey: target.mapKey
-    };
     avatarMarkers.push({
       marker: marker,
       mapKey: target.mapKey,

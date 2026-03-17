@@ -73,6 +73,49 @@
     });
   }
 
+  function submitViaJsonp(url, requestBody) {
+    return new Promise(function(resolve, reject) {
+      const callbackName = "__appSubmit_" + Date.now() + "_" + Math.random().toString(36).slice(2);
+      const script = document.createElement("script");
+      let settled = false;
+      const timeoutId = window.setTimeout(function() {
+        cleanup();
+        reject(new Error("Remote submission timed out"));
+      }, 12000);
+
+      function cleanup() {
+        window.clearTimeout(timeoutId);
+        if (script.parentNode) script.parentNode.removeChild(script);
+        try { delete window[callbackName]; } catch (_) { window[callbackName] = undefined; }
+      }
+
+      window[callbackName] = function(data) {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        if (!data || data.ok !== true) {
+          reject(new Error(data && data.error ? data.error : "Remote submission failed"));
+          return;
+        }
+        resolve({ ok: true, skipped: false, data: data });
+      };
+
+      script.onerror = function() {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        reject(new Error("Remote submission failed"));
+      };
+
+      const submitUrl = new URL(url);
+      submitUrl.searchParams.set("action", "submit");
+      submitUrl.searchParams.set("payload_json", requestBody);
+      submitUrl.searchParams.set("callback", callbackName);
+      script.src = submitUrl.toString();
+      document.head.appendChild(script);
+    });
+  }
+
   window.submitAppResponse = async function submitAppResponse(type, payload) {
     const cfg = window.getAppConfig();
     if (!cfg.responseWebhookUrl) {
@@ -89,6 +132,12 @@
     const isGoogleAppsScript = /script\.google\.com\/macros\/s\//.test(cfg.responseWebhookUrl);
 
     if (isGoogleAppsScript) {
+      if (requestBody.length <= 1800) {
+        return submitViaJsonp(cfg.responseWebhookUrl, requestBody)
+          .catch(function() {
+            return submitViaHiddenForm(cfg.responseWebhookUrl, requestBody);
+          });
+      }
       return submitViaHiddenForm(cfg.responseWebhookUrl, requestBody);
     }
 
@@ -119,4 +168,5 @@
 
     return { ok: true, skipped: false, data: data };
   };
+
 })();
