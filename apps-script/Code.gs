@@ -1,26 +1,3 @@
-function doGet(e) {
-  try {
-    var action = (e && e.parameter && e.parameter.action) ? e.parameter.action : "";
-    if (action !== "submit") {
-      return outputResponse_({ ok: false, error: "Unknown action" }, e);
-    }
-
-    var body = parseRequestBody_(e);
-    if (body.type === "avatar_match") {
-      appendAvatarMatch_(body);
-    } else {
-      appendStudyResponse_(body);
-    }
-
-    return outputResponse_({ ok: true }, e);
-  } catch (err) {
-    return outputResponse_({
-      ok: false,
-      error: err && err.message ? err.message : String(err)
-    }, e);
-  }
-}
-
 function doPost(e) {
   try {
     var body = parseRequestBody_(e);
@@ -147,22 +124,4 @@ function jsonResponse_(obj) {
   return ContentService
     .createTextOutput(JSON.stringify(obj))
     .setMimeType(ContentService.MimeType.JSON);
-}
-
-function javascriptResponse_(callbackName, obj) {
-  return ContentService
-    .createTextOutput(String(callbackName) + "(" + JSON.stringify(obj) + ");")
-    .setMimeType(ContentService.MimeType.JAVASCRIPT);
-}
-
-function outputResponse_(obj, e) {
-  var callbackName = e && e.parameter && e.parameter.callback ? sanitizeCallback_(e.parameter.callback) : "";
-  if (callbackName) return javascriptResponse_(callbackName, obj);
-  return jsonResponse_(obj);
-}
-
-function sanitizeCallback_(name) {
-  var clean = String(name || "").replace(/[^\w.$]/g, "");
-  if (!clean) throw new Error("Invalid callback");
-  return clean;
 }
