@@ -37,6 +37,42 @@
     };
   };
 
+  function submitViaHiddenForm(url, requestBody) {
+    return new Promise(function(resolve, reject) {
+      try {
+        const targetName = "app-script-target-" + Date.now() + "-" + Math.random().toString(36).slice(2);
+        const iframe = document.createElement("iframe");
+        iframe.name = targetName;
+        iframe.style.display = "none";
+
+        const form = document.createElement("form");
+        form.method = "POST";
+        form.action = url;
+        form.target = targetName;
+        form.style.display = "none";
+        form.enctype = "application/x-www-form-urlencoded";
+
+        const input = document.createElement("input");
+        input.type = "hidden";
+        input.name = "payload_json";
+        input.value = requestBody;
+        form.appendChild(input);
+
+        document.body.appendChild(iframe);
+        document.body.appendChild(form);
+        form.submit();
+
+        window.setTimeout(function() {
+          form.remove();
+          iframe.remove();
+          resolve({ ok: true, skipped: false, submitted: true });
+        }, 1200);
+      } catch (err) {
+        reject(err);
+      }
+    });
+  }
+
   window.submitAppResponse = async function submitAppResponse(type, payload) {
     const cfg = window.getAppConfig();
     if (!cfg.responseWebhookUrl) {
@@ -53,25 +89,7 @@
     const isGoogleAppsScript = /script\.google\.com\/macros\/s\//.test(cfg.responseWebhookUrl);
 
     if (isGoogleAppsScript) {
-      if (typeof navigator !== "undefined" && typeof navigator.sendBeacon === "function") {
-        const queued = navigator.sendBeacon(
-          cfg.responseWebhookUrl,
-          new Blob([requestBody], { type: "text/plain;charset=utf-8" })
-        );
-        if (queued) {
-          return { ok: true, skipped: false, queued: true };
-        }
-      }
-
-      await fetch(cfg.responseWebhookUrl, {
-        method: "POST",
-        mode: "no-cors",
-        headers: {
-          "Content-Type": "text/plain;charset=utf-8"
-        },
-        body: requestBody
-      });
-      return { ok: true, skipped: false, opaque: true };
+      return submitViaHiddenForm(cfg.responseWebhookUrl, requestBody);
     }
 
     const headers = {

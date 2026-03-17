@@ -108,10 +108,16 @@ function getOrCreateSheet_(sheetName, headers) {
 }
 
 function parseRequestBody_(e) {
-  if (!e || !e.postData || !e.postData.contents) {
-    throw new Error("Missing POST body");
+  if (!e) {
+    throw new Error("Missing request event");
   }
-  return JSON.parse(e.postData.contents);
+  if (e.parameter && e.parameter.payload_json) {
+    return JSON.parse(e.parameter.payload_json);
+  }
+  if (e.postData && e.postData.contents) {
+    return JSON.parse(e.postData.contents);
+  }
+  throw new Error("Missing POST body");
 }
 
 function jsonResponse_(obj) {
