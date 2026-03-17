@@ -408,6 +408,13 @@
     if (toggleBtn) toggleBtn.addEventListener("click", function() { setAvatarVisibility(!avatarsVisible); });
   }
 
+  function submitAvatarMatchRemotely(record) {
+    if (!record) return;
+    submitAppResponse("avatar_match", record).catch(function(err) {
+      console.error("Avatar match submission failed:", err);
+    });
+  }
+
   function renderStateAvatar(personName, stateName, options) {
     options = options || {};
     const target = stateCenters[stateName];
@@ -435,8 +442,26 @@
     marker.bindTooltip(escHtml(rawName) + " matched with " + escHtml(stateName), {
       direction: "top", offset: [0, -14], className: "state-tooltip"
     });
-    avatarMarkers.push({ marker: marker, mapKey: target.mapKey, personName: rawName, stateName: stateName, avatarKey: avatarKey });
-    if (options.persist !== false) saveAvatarsToStorage();
+    const record = {
+      id: Date.now(),
+      at: new Date().toISOString(),
+      personName: rawName,
+      stateName: stateName,
+      avatarKey: avatarKey,
+      source: options.source || "manual",
+      mapKey: target.mapKey
+    };
+    avatarMarkers.push({
+      marker: marker,
+      mapKey: target.mapKey,
+      personName: rawName,
+      stateName: stateName,
+      avatarKey: avatarKey
+    });
+    if (options.persist !== false) {
+      saveAvatarsToStorage();
+      submitAvatarMatchRemotely(record);
+    }
     return true;
   }
 

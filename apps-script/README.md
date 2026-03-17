@@ -11,6 +11,7 @@
 7. Deploy and authorize access.
 8. Copy the web app URL.
 9. Paste that URL into `window.APP_CONFIG.responseWebhookUrl` in `/index.html`.
+10. If you update `Code.gs` later, redeploy the web app so the new version is live.
 
 The site will POST JSON like:
 
@@ -36,3 +37,8 @@ The site will POST JSON like:
   }
 }
 ```
+
+The script writes to two tabs:
+
+- `Responses` for completed Map Study submissions
+- `AvatarMatches` for state-match avatar placements

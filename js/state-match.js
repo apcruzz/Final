@@ -241,7 +241,12 @@
         // Highlight on map
         highlightState(top.state);
         // Place avatar on matched state
-        if (playerName) renderStateAvatar(playerName, top.state, { avatarKey: playerGender === "female" ? "wahine" : "default" });
+        if (playerName) {
+          renderStateAvatar(playerName, top.state, {
+            avatarKey: playerGender === "female" ? "wahine" : "default",
+            source: "state_match"
+          });
+        }
       }
     }
 

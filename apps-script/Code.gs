@@ -1,29 +1,11 @@
 function doPost(e) {
   try {
-    var sheet = getResponseSheet_();
     var body = parseRequestBody_(e);
-    var payload = body && body.payload ? body.payload : {};
-    var entries = Array.isArray(payload.entries) ? payload.entries : [];
-
-    sheet.appendRow([
-      new Date(),
-      body.app || "",
-      body.type || "",
-      body.submittedAt || "",
-      body.page || "",
-      payload.id || "",
-      payload.at || "",
-      payload.name || "",
-      payload.gender || "",
-      payload.correct || "",
-      payload.total || "",
-      payload.avgConf || "",
-      payload.avgTime || "",
-      payload.totalTimeMs || "",
-      payload.fastestMap || "",
-      Array.isArray(payload.hardestReasons) ? payload.hardestReasons.join(" | ") : "",
-      JSON.stringify(entries)
-    ]);
+    if (body.type === "avatar_match") {
+      appendAvatarMatch_(body);
+    } else {
+      appendStudyResponse_(body);
+    }
 
     return jsonResponse_({ ok: true });
   } catch (err) {
@@ -34,33 +16,92 @@ function doPost(e) {
   }
 }
 
-function getResponseSheet_() {
+function appendStudyResponse_(body) {
+  var sheet = getOrCreateSheet_("Responses", [
+    "received_at",
+    "app",
+    "type",
+    "submitted_at",
+    "page",
+    "response_id",
+    "response_at",
+    "name",
+    "gender",
+    "correct",
+    "total",
+    "avg_conf",
+    "avg_time",
+    "total_time_ms",
+    "fastest_map",
+    "hardest_reasons",
+    "entries_json"
+  ]);
+  var payload = body && body.payload ? body.payload : {};
+  var entries = Array.isArray(payload.entries) ? payload.entries : [];
+
+  sheet.appendRow([
+    new Date(),
+    body.app || "",
+    body.type || "",
+    body.submittedAt || "",
+    body.page || "",
+    payload.id || "",
+    payload.at || "",
+    payload.name || "",
+    payload.gender || "",
+    payload.correct || "",
+    payload.total || "",
+    payload.avgConf || "",
+    payload.avgTime || "",
+    payload.totalTimeMs || "",
+    payload.fastestMap || "",
+    Array.isArray(payload.hardestReasons) ? payload.hardestReasons.join(" | ") : "",
+    JSON.stringify(entries)
+  ]);
+}
+
+function appendAvatarMatch_(body) {
+  var sheet = getOrCreateSheet_("AvatarMatches", [
+    "received_at",
+    "app",
+    "type",
+    "submitted_at",
+    "page",
+    "match_id",
+    "match_at",
+    "person_name",
+    "state_name",
+    "avatar_key",
+    "source",
+    "map_key"
+  ]);
+  var payload = body && body.payload ? body.payload : {};
+
+  sheet.appendRow([
+    new Date(),
+    body.app || "",
+    body.type || "",
+    body.submittedAt || "",
+    body.page || "",
+    payload.id || "",
+    payload.at || "",
+    payload.personName || "",
+    payload.stateName || "",
+    payload.avatarKey || "",
+    payload.source || "",
+    payload.mapKey || ""
+  ]);
+}
+
+function getOrCreateSheet_(sheetName, headers) {
   var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = spreadsheet.getSheetByName("Responses");
+  var sheet = spreadsheet.getSheetByName(sheetName);
   if (!sheet) {
-    sheet = spreadsheet.insertSheet("Responses");
+    sheet = spreadsheet.insertSheet(sheetName);
   }
 
   if (sheet.getLastRow() === 0) {
-    sheet.appendRow([
-      "received_at",
-      "app",
-      "type",
-      "submitted_at",
-      "page",
-      "response_id",
-      "response_at",
-      "name",
-      "gender",
-      "correct",
-      "total",
-      "avg_conf",
-      "avg_time",
-      "total_time_ms",
-      "fastest_map",
-      "hardest_reasons",
-      "entries_json"
-    ]);
+    sheet.appendRow(headers);
   }
 
   return sheet;
