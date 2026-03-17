@@ -1032,6 +1032,34 @@ body.left-panel-collapsed .panel-toggle {
 
 .sq-sum-meta { font-size: 12px; color: var(--ink-dim); }
 
+.sq-remote-status {
+  font-size: 12px;
+  line-height: 1.4;
+  padding: 9px 11px;
+  border-radius: 8px;
+  border: 1px solid rgba(32,29,24,0.1);
+  background: rgba(32,29,24,0.04);
+  color: var(--ink-dim);
+}
+
+.sq-remote-status.is-success {
+  background: rgba(74,188,126,0.12);
+  border-color: rgba(74,188,126,0.35);
+  color: #245d3d;
+}
+
+.sq-remote-status.is-error {
+  background: rgba(239,68,68,0.1);
+  border-color: rgba(239,68,68,0.25);
+  color: #9f2f2f;
+}
+
+.sq-remote-status.is-pending {
+  background: rgba(232,195,106,0.16);
+  border-color: rgba(232,195,106,0.35);
+  color: #6f5206;
+}
+
 .sq-sum-table {
   width: 100%;
   border-collapse: collapse;

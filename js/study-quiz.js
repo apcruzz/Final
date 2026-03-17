@@ -69,6 +69,8 @@
   let studyFastestMap = "";
   let studyHardestReasons = [];
   let studyStarted = false;
+  let remoteSubmitState = "idle";
+  let remoteSubmitMessage = "";
 
   const bodyEl = document.getElementById("study-body");
   const footerEl = document.getElementById("study-footer");
@@ -141,6 +143,51 @@
     }
   }
 
+  function getRemoteSubmitMeta() {
+    if (remoteSubmitState === "success") {
+      return { cls: "is-success", text: remoteSubmitMessage || "Response submitted to your remote collector." };
+    }
+    if (remoteSubmitState === "error") {
+      return { cls: "is-error", text: remoteSubmitMessage || "Remote submission failed. This browser still saved the response locally." };
+    }
+    if (remoteSubmitState === "pending") {
+      return { cls: "is-pending", text: remoteSubmitMessage || "Submitting response..." };
+    }
+
+    const cfg = getAppConfig();
+    if (!cfg.responseWebhookUrl) {
+      return {
+        cls: "is-muted",
+        text: "Remote response collection is off. Responses are only saved in this browser until you set APP_CONFIG.responseWebhookUrl in index.html."
+      };
+    }
+    return {
+      cls: "is-muted",
+      text: remoteSubmitMessage || "Remote response collection is ready."
+    };
+  }
+
+  function renderRemoteSubmitStatus() {
+    const meta = getRemoteSubmitMeta();
+    return `<div class="sq-remote-status ${meta.cls}">${escHtml(meta.text)}</div>`;
+  }
+
+  async function submitStudyAttemptRemotely(row) {
+    remoteSubmitState = "pending";
+    remoteSubmitMessage = "Submitting response...";
+    try {
+      await submitAppResponse("study_attempt", row);
+      remoteSubmitState = "success";
+      remoteSubmitMessage = "Response submitted to your remote collector.";
+    } catch (err) {
+      remoteSubmitState = "error";
+      remoteSubmitMessage = err && err.message
+        ? "Remote submission failed: " + err.message
+        : "Remote submission failed. This browser still saved the response locally.";
+    }
+    renderStudyPanel();
+  }
+
   function saveStudyAttempt() {
     const total = DATASET_ORDER.length;
     const entries = DATASET_ORDER.map((k) => {
@@ -181,6 +228,9 @@
       if (list.length > 25) list.length = 25;
       localStorage.setItem(STUDY_ATTEMPTS_KEY, JSON.stringify(list));
     } catch (_) {}
+
+    void submitStudyAttemptRemotely(row);
+    return row;
   }
 
   function renderStudyResponseHistory() {
@@ -188,6 +238,7 @@
     studyContentMount.innerHTML = `
       <div class="sq-summary">
         <div class="sq-sum-title">Saved Map Study Responses</div>
+        ${renderRemoteSubmitStatus()}
         <table class="sq-sum-table">
           <thead>
             <tr>
@@ -292,6 +343,7 @@
     intro.innerHTML = `
       <div class="sq-question">Map study setup</div>
       <div class="sq-context">Tell us your name and select your gender, then click Begin to continue.</div>
+      ${renderRemoteSubmitStatus()}
     `;
     footerEl.innerHTML = `
       <div class="study-footer-actions">
@@ -459,6 +511,7 @@
         <div class="sq-summary">
           <div class="sq-sum-title">Quick feedback</div>
           <div class="sq-sum-meta">Which map helped you answer the questions fastest?</div>
+          ${renderRemoteSubmitStatus()}
         </div>
         <div class="sq-opts" id="sq-fastest-opts">
           ${mapOptions.map((m) => `<button type="button" class="sq-opt-btn" data-val="${m}">${m}</button>`).join("")}
@@ -509,6 +562,7 @@
     studyContentMount.innerHTML = `
       <div class="sq-summary">
         <div class="sq-sum-title">Study Complete</div>
+        ${renderRemoteSubmitStatus()}
         <div class="sq-sum-score">${correct}<span>/${total}</span></div>
         <div class="sq-sum-meta">Avg confidence: ${avgConf}/5 · Avg time: ${avgTime}s</div>
         <div class="sq-sum-meta">Fastest map: ${escHtml(studyFastestMap)}</div>

@@ -107,6 +107,12 @@
   <script src="states-demographic-data.js"></script>
   <script src="states-economic-data.js"></script>
 
+  <script>
+    window.APP_CONFIG = Object.assign({
+      responseWebhookUrl: "https://script.google.com/macros/s/AKfycbwcEyXyLQysIlWMHA1VsYBJYHfpD4SEXX5RkFPVK9o7gTfNATklYPRSyffYRt9uSjxh/exec",
+      responseWebhookAuth: ""
+    }, window.APP_CONFIG || {});
+  </script>
   <script src="js/app-utils.js"></script>
   <script src="js/data-layer.js"></script>
   <script src="js/map-view.js"></script>
