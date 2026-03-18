@@ -131,6 +131,46 @@
         throw new Error(message);
       }
 
+      if (type === "study_attempt" && Array.isArray(payload.entries) && payload.entries.length) {
+        const detailRows = payload.entries.map(function(entry, index) {
+          return {
+            response_id: String(payload.id || ""),
+            question_order: index + 1,
+            dataset_key: entry.dataset || "",
+            dataset_label: entry.datasetLabel || "",
+            answer: entry.answer || "",
+            confidence: Number(entry.confidence || 0),
+            time_ms: Number(entry.timeMs || 0),
+            correct: entry.correct === true,
+            app: "state-data-explorer",
+            page: window.location.href
+          };
+        });
+
+        const detailsResponse = await fetch(cfg.supabaseUrl + "/rest/v1/study_response_entries", {
+          method: "POST",
+          mode: "cors",
+          headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "apikey": cfg.supabaseAnonKey,
+            "Authorization": "Bearer " + cfg.supabaseAnonKey,
+            "Prefer": "return=minimal"
+          },
+          body: JSON.stringify(detailRows)
+        });
+
+        if (!detailsResponse.ok) {
+          let message = "Supabase detail insert failed with status " + detailsResponse.status;
+          try {
+            const data = await detailsResponse.json();
+            if (data && typeof data.message === "string") message = data.message;
+            else if (data && typeof data.error === "string") message = data.error;
+          } catch (_) {}
+          throw new Error(message);
+        }
+      }
+
       return { ok: true, skipped: false, backend: "supabase" };
     }
 
