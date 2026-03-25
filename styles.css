@@ -1155,8 +1155,8 @@ body.left-panel-collapsed .panel-toggle {
 
 .race-legend {
   position: absolute;
-  top: 86px;
-  right: 14px;
+  bottom: 44px;
+  left: 14px;
   z-index: 999;
   background: rgba(13,13,20,0.92);
   border: 1px solid rgba(255,255,255,0.1);
