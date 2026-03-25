@@ -10,6 +10,7 @@
     const GROUPS = {
       warm:         new Set(["Florida","Texas","Arizona","Nevada","California","Hawaii","Georgia","South Carolina","Louisiana","Alabama","Mississippi","New Mexico"]),
       coastal:      new Set(["California","Florida","Texas","New York","New Jersey","Delaware","Maryland","Virginia","North Carolina","South Carolina","Georgia","Alabama","Louisiana","Mississippi","Alaska","Hawaii","Oregon","Washington","Maine","Massachusetts","Rhode Island"]),
+      warmCoastal:  new Set(["California","Florida","Hawaii","Texas","Georgia","South Carolina","North Carolina","Alabama","Louisiana","Mississippi"]),
       mild:         new Set(["North Carolina","Virginia","Tennessee","Arkansas","Oklahoma","Kentucky","Maryland","Oregon"]),
       cold:         new Set(["Alaska","North Dakota","South Dakota","Montana","Minnesota","Wisconsin","Vermont","Maine","New Hampshire","Wyoming","Michigan"]),
       snowy:        new Set(["Alaska","Colorado","Maine","Massachusetts","Michigan","Minnesota","Montana","New Hampshire","New York","Utah","Vermont","Wisconsin","Wyoming"]),
@@ -99,7 +100,7 @@
         {id:"slow",     label:"Slow and relaxed",       apply:[{group:"quiet",score:3},{group:"rural",score:1}]}
       ]},
       { id:"landscape", prompt:"Which landscape do you prefer most?", options:[
-        {id:"coast",    label:"Coast and beaches",       apply:[{group:"coastal",score:4},{group:"warm",score:1},{group:"entertainment",score:1}]},
+        {id:"coast",    label:"Coast and beaches",       apply:[{group:"warmCoastal",score:5},{group:"coastal",score:2},{group:"warm",score:2}]},
         {id:"mountain", label:"Mountains and forests",   apply:[{group:"nature",score:3},{group:"quiet",score:1}]},
         {id:"plains",   label:"Open plains and space",   apply:[{group:"rural",score:2},{group:"affordable",score:2}]}
       ]},
@@ -124,9 +125,9 @@
         {id:"ambitious", label:"Driven and opportunity-focused",  apply:[{group:"jobs",score:3},{group:"collegeTown",score:1}]}
       ]},
       { id:"water", prompt:"Which water setting sounds most appealing?", options:[
-        {id:"tropical", label:"Warm ocean, reefs, and beaches", apply:[{group:"islandCulture",score:5},{group:"waterLife",score:2},{group:"warm",score:1}]},
+        {id:"tropical", label:"Warm ocean, reefs, and beaches", apply:[{group:"islandCulture",score:5},{group:"warmCoastal",score:4},{group:"waterLife",score:2},{group:"warm",score:2}]},
         {id:"rugged",   label:"Wild coastline, glaciers, and fishing towns", apply:[{group:"frontier",score:5},{group:"waterLife",score:2},{group:"cold",score:1}]},
-        {id:"mixed",    label:"Lakes, rivers, and weekend beach trips", apply:[{group:"coastal",score:2},{group:"suburban",score:1},{group:"family",score:1}]}
+        {id:"mixed",    label:"Lakes, rivers, and weekend beach trips", apply:[{group:"warmCoastal",score:2},{group:"coastal",score:1},{group:"suburban",score:1},{group:"family",score:1}]}
       ]},
       { id:"careerField", prompt:"Which work scene is most attractive?", options:[
         {id:"tech",       label:"Tech and innovation",          apply:[{group:"jobs",score:2},{group:"westCoast",score:2},{group:"premium",score:1}]},
@@ -149,7 +150,7 @@
         {id:"cabin",    label:"Cabin, ranch, or something tucked away", apply:[{group:"frontier",score:2},{group:"adventure",score:2},{group:"quiet",score:1}]}
       ]},
       { id:"weekTrip", prompt:"What kind of weekend trip would you actually take?", options:[
-        {id:"surf",   label:"Surf town or beach escape", apply:[{group:"islandCulture",score:3},{group:"westCoast",score:2},{group:"waterLife",score:1}]},
+        {id:"surf",   label:"Surf town or beach escape", apply:[{group:"islandCulture",score:3},{group:"warmCoastal",score:4},{group:"surfCulture",score:2},{group:"waterLife",score:1}]},
         {id:"ski",    label:"Ski town or snowy mountain lodge", apply:[{group:"winterSports",score:3},{group:"nature",score:1}]},
         {id:"road",   label:"Open-road trip with wide landscapes", apply:[{group:"desert",score:2},{group:"rural",score:1},{group:"independent",score:1}]}
       ]},
@@ -169,7 +170,7 @@
         {id:"stars",  label:"Quiet nights under the stars", apply:[{group:"stargazing",score:3},{group:"quiet",score:1}]}
       ]},
       { id:"fitness", prompt:"What movement style fits you best?", options:[
-        {id:"ocean",   label:"Swimming, paddling, or beach activity", apply:[{group:"islandCulture",score:2},{group:"waterLife",score:2},{group:"wellness",score:1}]},
+        {id:"ocean",   label:"Swimming, paddling, or beach activity", apply:[{group:"warmCoastal",score:4},{group:"islandCulture",score:2},{group:"surfCulture",score:2},{group:"waterLife",score:2},{group:"wellness",score:1}]},
         {id:"trail",   label:"Hiking, climbing, and mountain days",    apply:[{group:"adventure",score:3},{group:"nature",score:1}]},
         {id:"studio",  label:"Gyms, classes, and structured routines", apply:[{group:"urban",score:1},{group:"suburban",score:2},{group:"wellness",score:1}]}
       ]},
@@ -189,7 +190,7 @@
         {id:"expedition",label:"Adventurous and a little untamed", apply:[{group:"frontier",score:3},{group:"adventure",score:2}]}
       ]},
       { id:"environment", prompt:"What environment sounds most restorative to you?", options:[
-        {id:"reef",   label:"Tropical water and ocean life", apply:[{group:"surfCulture",score:3},{group:"marineLife",score:3},{group:"islandCulture",score:2}]},
+        {id:"reef",   label:"Tropical water and ocean life", apply:[{group:"warmCoastal",score:4},{group:"surfCulture",score:3},{group:"marineLife",score:3},{group:"islandCulture",score:2}]},
         {id:"forest", label:"Forest trails and cool air",    apply:[{group:"ecoLiving",score:2},{group:"nature",score:2},{group:"wellness",score:1}]},
         {id:"open",   label:"Open sky and huge distances",   apply:[{group:"frontier",score:2},{group:"roadTrips",score:2},{group:"stargazing",score:1}]}
       ]},
@@ -204,7 +205,7 @@
         {id:"lowkey",    label:"Minimal noise and more privacy",        apply:[{group:"quiet",score:2},{group:"independent",score:1},{group:"rural",score:1}]}
       ]},
       { id:"vacationMood", prompt:"Pick the vacation mood you would repeat every year.", options:[
-        {id:"resort",    label:"Resort, beach, and sunset dinners", apply:[{group:"islandCulture",score:3},{group:"luxury",score:2},{group:"waterLife",score:1}]},
+        {id:"resort",    label:"Resort, beach, and sunset dinners", apply:[{group:"warmCoastal",score:4},{group:"islandCulture",score:3},{group:"luxury",score:2},{group:"waterLife",score:1}]},
         {id:"expedition",label:"Remote lodge and wildlife watching", apply:[{group:"frontier",score:3},{group:"marineLife",score:1},{group:"adventure",score:2}]},
         {id:"park",      label:"National parks and scenic drives",   apply:[{group:"nationalParks",score:3},{group:"roadTrips",score:2}]}
       ]},
@@ -214,7 +215,7 @@
         {id:"none",   label:"I care more about practical living", apply:[{group:"family",score:1},{group:"affordable",score:1},{group:"farmLife",score:2}]}
       ]},
       { id:"landUse", prompt:"What land use feels most appealing nearby?", options:[
-        {id:"coastal", label:"Marinas, beaches, and ocean access", apply:[{group:"marineLife",score:3},{group:"coastal",score:1},{group:"surfCulture",score:1}]},
+        {id:"coastal", label:"Marinas, beaches, and ocean access", apply:[{group:"warmCoastal",score:4},{group:"marineLife",score:3},{group:"coastal",score:1},{group:"surfCulture",score:1}]},
         {id:"parks",   label:"Protected parks and wilderness",    apply:[{group:"nationalParks",score:3},{group:"nature",score:1}]},
         {id:"fields",  label:"Farms, ranches, and open working land", apply:[{group:"farmLife",score:3},{group:"rural",score:1}]}
       ]},
@@ -246,7 +247,7 @@
       return out;
     }
 
-    const QUESTIONS_PER_ROUND = 8;
+    const QUESTIONS_PER_ROUND = 5;
     const QUESTION_ROTATION_STORAGE_KEY = "state-match-question-rotation-v2";
     const STATE_GROUP_COUNTS = STATES.reduce(function(map, state) {
       map[state] = 0;
@@ -414,7 +415,7 @@
         body.innerHTML = `
           <div class="qz-step-label">Welcome</div>
           <h2 class="qz-heading">Find your perfect state match</h2>
-          <p class="qz-sub">Answer 8 quick questions and we'll match you to a U.S. state — then explore it on the map.</p>
+          <p class="qz-sub">Answer 5 quick questions and we'll match you to a U.S. state — then explore it on the map.</p>
           <div class="qz-field qz-gap-field">
             <label class="qz-label" for="quiz-name-input">Your name</label>
             <input id="quiz-name-input" class="qz-input" type="text" maxlength="40" placeholder="Enter your name" value="${escHtml(playerName)}" autocomplete="off" />
