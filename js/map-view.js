@@ -245,18 +245,18 @@
       return;
     }
 
-    if (key === "race") {
-      const groups = DATASETS.race.barGroups || [];
-      const div = document.createElement("div");
-      div.className = "race-legend";
-      div.innerHTML = `<div class="race-legend-title">Race bar colors</div>` +
-        groups.map((group) =>
-          `<div class="race-legend-row"><span class="race-swatch" style="background:${group.color}"></span>${group.label}</div>`
-        ).join("") +
-        `<div class="race-legend-note">Bar height shows each share within a state</div>`;
-      document.querySelector(".map-container").appendChild(div);
-      raceLegendEl = div;
-    }
+    // if (key === "race") {
+    //   const groups = DATASETS.race.barGroups || [];
+    //   const div = document.createElement("div");
+    //   div.className = "race-legend";
+    //   div.innerHTML = `<div class="race-legend-title">Race bar colors</div>` +
+    //     groups.map((group) =>
+    //       `<div class="race-legend-row"><span class="race-swatch" style="background:${group.color}"></span>${group.label}</div>`
+    //     ).join("") +
+    //     `<div class="race-legend-note">Bar height shows each share within a state</div>`;
+    //   document.querySelector(".map-container").appendChild(div);
+    //   raceLegendEl = div;
+    // }
   }
 
   // ── Dataset switching ──
