@@ -166,7 +166,7 @@
   function renderBarOverlay() {
     const d = ds();
     const groups = d.barGroups;
-    const bW=4, maxH=36, gap=2;
+    const bW=5, maxH=46, gap=3;
     const totW = groups.length*(bW+gap)-gap;
 
     function getBarData(name) {
@@ -200,11 +200,11 @@
       const name = getStateName(feature);
       const data = getBarData(name); if (!data) return;
       const center = stateCenters[name]; if (!center) return;
-      const marker = L.marker(center.center, {icon:mkBarIcon(data,1), interactive:false, keyboard:false, zIndexOffset:0});
+      const marker = L.marker(center.center, {icon:mkBarIcon(data,1.2), interactive:false, keyboard:false, zIndexOffset:0});
       marker.addTo(getMapByKey(center.mapKey));
       bubbleMarkers.push({marker, mapKey:center.mapKey});
-      layer.on("mouseover.overlay-hover", ()=>{marker.setIcon(mkBarIcon(data,3.5)); marker.setZIndexOffset(1000);});
-      layer.on("mouseout.overlay-hover",  ()=>{marker.setIcon(mkBarIcon(data,1));   marker.setZIndexOffset(0);});
+      layer.on("mouseover.overlay-hover", ()=>{marker.setIcon(mkBarIcon(data,3.8)); marker.setZIndexOffset(1000);});
+      layer.on("mouseout.overlay-hover",  ()=>{marker.setIcon(mkBarIcon(data,1.2)); marker.setZIndexOffset(0);});
     });
   }
 
@@ -223,21 +223,40 @@
     }
   }
 
-  // ── Economy sector legend ──
+  // ── Legends ──
   let econLegendEl = null;
-  function updateEconLegend(key) {
+  let raceLegendEl = null;
+
+  function updateMapLegends(key) {
     if (econLegendEl) { econLegendEl.remove(); econLegendEl = null; }
-    if (key !== "economy") return;
-    const colors = DATASETS.economy.SECTOR_CHORO_COLORS;
-    const div = document.createElement("div");
-    div.className = "econ-legend";
-    div.innerHTML = `<div class="econ-legend-title">Dominant sector by employment</div>` +
-      Object.entries(colors).map(([label, color]) =>
-        `<div class="econ-legend-row"><span class="econ-swatch" style="background:${color}"></span>${label}</div>`
-      ).join("") +
-      `<div class="econ-legend-note">Hover any state for full breakdown</div>`;
-    document.querySelector(".map-container").appendChild(div);
-    econLegendEl = div;
+    if (raceLegendEl) { raceLegendEl.remove(); raceLegendEl = null; }
+
+    if (key === "economy") {
+      const colors = DATASETS.economy.SECTOR_CHORO_COLORS;
+      const div = document.createElement("div");
+      div.className = "econ-legend";
+      div.innerHTML = `<div class="econ-legend-title">Dominant sector by employment</div>` +
+        Object.entries(colors).map(([label, color]) =>
+          `<div class="econ-legend-row"><span class="econ-swatch" style="background:${color}"></span>${label}</div>`
+        ).join("") +
+        `<div class="econ-legend-note">Hover any state for full breakdown</div>`;
+      document.querySelector(".map-container").appendChild(div);
+      econLegendEl = div;
+      return;
+    }
+
+    if (key === "race") {
+      const groups = DATASETS.race.barGroups || [];
+      const div = document.createElement("div");
+      div.className = "race-legend";
+      div.innerHTML = `<div class="race-legend-title">Race bar colors</div>` +
+        groups.map((group) =>
+          `<div class="race-legend-row"><span class="race-swatch" style="background:${group.color}"></span>${group.label}</div>`
+        ).join("") +
+        `<div class="race-legend-note">Bar height shows each share within a state</div>`;
+      document.querySelector(".map-container").appendChild(div);
+      raceLegendEl = div;
+    }
   }
 
   // ── Dataset switching ──
@@ -245,8 +264,8 @@
     activeDataset = key;
     // Update tab UI
     document.querySelectorAll(".ds-tab").forEach(b => b.classList.toggle("active", b.dataset.key===key));
-    // Show/hide economy legend
-    updateEconLegend(key);
+    // Show/hide dataset legends
+    updateMapLegends(key);
     // Update footer desc
     document.getElementById("map-footer").textContent = ds().desc();
     repaint();

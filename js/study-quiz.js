@@ -22,9 +22,9 @@
       question: "Which pattern best describes gender distribution across U.S. states?",
       options: [
         "Female percentage is higher in most states",
-        "Gender distribution is roughly equal across most states",
-        "Male percentage is notably higher in most states",
-        "Coastal states are predominantly female"
+        "Male percentage is higher in most states",
+        "Most states alternate evenly between male-majority and female-majority",
+        "States with larger populations tend to have more men than women"
       ],
       correct: "Female percentage is higher in most states"
     },
