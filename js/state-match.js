@@ -12,6 +12,7 @@
       coastal:      new Set(["California","Florida","Texas","New York","New Jersey","Delaware","Maryland","Virginia","North Carolina","South Carolina","Georgia","Alabama","Louisiana","Mississippi","Alaska","Hawaii","Oregon","Washington","Maine","Massachusetts","Rhode Island"]),
       mild:         new Set(["North Carolina","Virginia","Tennessee","Arkansas","Oklahoma","Kentucky","Maryland","Oregon"]),
       cold:         new Set(["Alaska","North Dakota","South Dakota","Montana","Minnesota","Wisconsin","Vermont","Maine","New Hampshire","Wyoming","Michigan"]),
+      snowy:        new Set(["Alaska","Colorado","Maine","Massachusetts","Michigan","Minnesota","Montana","New Hampshire","New York","Utah","Vermont","Wisconsin","Wyoming"]),
       urban:        new Set(["New York","California","Illinois","Massachusetts","Texas","Florida","New Jersey","Washington","Georgia","Pennsylvania"]),
       suburban:     new Set(["Virginia","North Carolina","Colorado","Arizona","Maryland","Tennessee","Ohio","Minnesota"]),
       rural:        new Set(["Montana","Wyoming","North Dakota","South Dakota","Idaho","West Virginia","Vermont","Maine","Nebraska"]),
@@ -32,7 +33,7 @@
       independent:  new Set(["Alaska","Vermont","Oregon","Montana","New Mexico","Maine"]),
       hospitality:  new Set(["Hawaii","South Carolina","Georgia","Tennessee","North Carolina","Louisiana","Alabama"]),
       waterLife:    new Set(["Hawaii","California","Florida","Alaska","Washington","Maine","Michigan"]),
-      winterSports: new Set(["Alaska","Colorado","Utah","Vermont","Maine","Wyoming","Montana"]),
+      winterSports: new Set(["Alaska","Colorado","Utah","Vermont","Maine","Wyoming","Montana","Michigan","Minnesota","New Hampshire","Wisconsin"]),
       history:      new Set(["Massachusetts","Virginia","Pennsylvania","South Carolina","Louisiana","New Mexico","Maryland"]),
       music:        new Set(["Tennessee","Louisiana","Texas","Georgia","Illinois","New York"]),
       wellness:     new Set(["Hawaii","California","Colorado","Oregon","Arizona","Vermont"]),
@@ -55,7 +56,7 @@
       { id:"weather", prompt:"What weather do you prefer most of the year?", options:[
         {id:"warm",  label:"Warm and sunny",  apply:[{group:"warm",score:3},{group:"mild",score:1}]},
         {id:"mild",  label:"Four seasons",    apply:[{group:"mild",score:3},{group:"cold",score:1},{group:"warm",score:1}]},
-        {id:"cold",  label:"Cool / snowy",    apply:[{group:"cold",score:3},{group:"nature",score:1}]}
+        {id:"cold",  label:"Cool / snowy",    apply:[{group:"cold",score:2},{group:"snowy",score:3},{group:"winterSports",score:1}]}
       ]},
       { id:"lifestyle", prompt:"What kind of lifestyle fits you best?", options:[
         {id:"urban",    label:"Big city energy",      apply:[{group:"urban",score:3},{group:"jobs",score:1}]},
@@ -246,6 +247,75 @@
     }
 
     const QUESTIONS_PER_ROUND = 8;
+    const QUESTION_ROTATION_STORAGE_KEY = "state-match-question-rotation-v2";
+    const STATE_GROUP_COUNTS = STATES.reduce(function(map, state) {
+      map[state] = 0;
+      return map;
+    }, {});
+
+    Object.values(GROUPS).forEach(function(states) {
+      states.forEach(function(state) {
+        STATE_GROUP_COUNTS[state] = (STATE_GROUP_COUNTS[state] || 0) + 1;
+      });
+    });
+
+    function createQuestionRotation() {
+      return {
+        order: shuffle(QUESTION_BANK.map(function(question) { return question.id; })),
+        cursor: 0
+      };
+    }
+
+    function readQuestionRotation() {
+      try {
+        const raw = window.localStorage.getItem(QUESTION_ROTATION_STORAGE_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        const validIds = new Set(QUESTION_BANK.map(function(question) { return question.id; }));
+        if (!parsed || !Array.isArray(parsed.order) || typeof parsed.cursor !== "number") return null;
+        if (
+          parsed.order.length !== QUESTION_BANK.length ||
+          parsed.order.some(function(id) { return !validIds.has(id); })
+        ) {
+          return null;
+        }
+        return {
+          order: parsed.order.slice(),
+          cursor: Math.max(0, Math.min(parsed.cursor, parsed.order.length))
+        };
+      } catch (_) {
+        return null;
+      }
+    }
+
+    function writeQuestionRotation(rotation) {
+      try {
+        window.localStorage.setItem(QUESTION_ROTATION_STORAGE_KEY, JSON.stringify(rotation));
+      } catch (_) {
+        // Ignore storage write failures and continue in memory.
+      }
+    }
+
+    function getNextQuestions(count) {
+      const byId = new Map(QUESTION_BANK.map(function(question) {
+        return [question.id, question];
+      }));
+      let rotation = readQuestionRotation() || createQuestionRotation();
+      const selected = [];
+
+      while (selected.length < count) {
+        if (rotation.cursor >= rotation.order.length) {
+          rotation = createQuestionRotation();
+        }
+        const nextId = rotation.order[rotation.cursor];
+        rotation.cursor += 1;
+        const question = byId.get(nextId);
+        if (question) selected.push(question);
+      }
+
+      writeQuestionRotation(rotation);
+      return selected;
+    }
 
     function getBaseScore(state) {
       if (state === "Hawaii") return 0.45;
@@ -258,13 +328,14 @@
     function ensureRemoteCandidates(entries, allEntries, limit) {
       const out = entries.slice(0, limit).map(([state, score]) => ({ state, score: +score.toFixed(2) }));
       const remoteStates = ["Alaska", "Hawaii"];
+      const cutoffScore = out.length ? out[out.length - 1].score : 0;
 
       const present = new Set(out.map(r => r.state));
       for (const state of remoteStates) {
         if (present.has(state)) continue;
         const match = allEntries.find(([s]) => s === state);
         if (!match) continue;
-        if (allEntries.findIndex(([s]) => s === state) > 7) continue;
+        if (match[1] < cutoffScore * 0.9) continue;
         if (!out.length) break;
         const score = +match[1].toFixed(2);
         out[out.length - 1] = { state, score };
@@ -274,8 +345,22 @@
       return out;
     }
 
+    function getGroupWeight(group, score) {
+      const states = GROUPS[group];
+      if (!states || !states.size) return 0;
+      // Broad groups should matter, but not overpower more distinctive signals.
+      return score / Math.sqrt(states.size);
+    }
+
+    function getBreadthPenalty(state) {
+      const groupCount = STATE_GROUP_COUNTS[state] || 0;
+      if (groupCount <= 8) return 1;
+      return 1 + (groupCount - 8) * 0.045;
+    }
+
     function computeRecs(answers, questions) {
       const scores = new Map(STATES.map(s=>[s, getBaseScore(s)]));
+      const matchCounts = new Map(STATES.map(s=>[s, 0]));
       const answerSignature = answers.join("|");
       answers.forEach((aid, idx) => {
         const q = questions[idx]; if (!q) return;
@@ -283,12 +368,20 @@
         sel.apply.forEach(({group,score}) => {
           const states = Array.from(GROUPS[group] || []);
           if (!states.length) return;
-          const weight = score / states.length;
-          states.forEach(s => scores.set(s,(scores.get(s)||0)+weight));
+          const weight = getGroupWeight(group, score);
+          states.forEach(function(state) {
+            scores.set(state, (scores.get(state) || 0) + weight);
+            matchCounts.set(state, (matchCounts.get(state) || 0) + 1);
+          });
         });
       });
       const allSorted = [...scores.entries()]
-        .map(([state, score]) => [state, +score.toFixed(4), hashSeed(answerSignature + "::" + state)])
+        .map(function([state, score]) {
+          const matchCount = matchCounts.get(state) || 0;
+          const supportBonus = matchCount > 0 ? Math.min(0.55, matchCount * 0.06) : 0;
+          const balancedScore = (score + supportBonus) / getBreadthPenalty(state);
+          return [state, +balancedScore.toFixed(4), hashSeed(answerSignature + "::" + state)];
+        })
         .sort((a,b)=> b[1] !== a[1] ? b[1] - a[1] : b[2] - a[2])
         .map(([state, score]) => [state, score]);
       return ensureRemoteCandidates(allSorted.slice(0,3), allSorted, 3);
@@ -309,7 +402,7 @@
     const backBtn = document.getElementById("quiz-back-btn");
     const nextBtn = document.getElementById("quiz-next-btn");
 
-    let questions = shuffle(QUESTION_BANK).slice(0, QUESTIONS_PER_ROUND);
+    let questions = getNextQuestions(QUESTIONS_PER_ROUND);
     let playerName = "";
     let playerGender = "male";
     const answers = [];
@@ -447,7 +540,7 @@
         step++; showStep(); return;
       }
       // Play again
-      questions = shuffle(QUESTION_BANK).slice(0, QUESTIONS_PER_ROUND);
+      questions = getNextQuestions(QUESTIONS_PER_ROUND);
       playerName = ""; playerGender = "male"; answers.length = 0; step = -1;
       showStep();
     });
